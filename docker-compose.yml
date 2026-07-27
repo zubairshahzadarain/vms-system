@@ -1,0 +1,73 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-vms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vms_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-vms}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vms}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  simulator:
+    build: ./simulator
+    restart: unless-stopped
+    ports:
+      - "8554:8554"
+
+  stream-feed:
+    build: ./stream-feed
+    restart: unless-stopped
+    environment:
+      MEDIAMTX_HOST: simulator
+      MEDIAMTX_PORT: 8554
+    depends_on:
+      - simulator
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-vms}:${POSTGRES_PASSWORD:-vms_secret}@db:5432/${POSTGRES_DB:-vms}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-7f8a9b2c}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
+      PORT: 3000
+      MEDIA_ROOT: /app/media
+      MAX_STORAGE_GB: ${MAX_STORAGE_GB:-5}
+      KEYFRAME_INTERVAL_SECONDS: ${KEYFRAME_INTERVAL_SECONDS:-30}
+      SEGMENT_SECONDS: ${SEGMENT_SECONDS:-60}
+      SIMULATOR_HOST: simulator
+      SEED_ON_START: "true"
+    volumes:
+      - media-data:/app/media
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      simulator:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', r => process.exit(r.statusCode===200?0:1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  media-data:

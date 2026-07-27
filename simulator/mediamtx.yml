@@ -1,0 +1,15 @@
+# Minimal MediaMTX config for the VMS test-stream simulator.
+# Default behavior (unauthenticated publish/read, wildcard paths) is fine for
+# an isolated docker-compose network — this file just makes it explicit and
+# forces TCP transport to avoid UDP/NAT issues between containers.
+logLevel: info
+logDestinations: [stdout]
+
+rtspAddress: :8554
+protocols: [tcp]
+readTimeout: 20s
+writeTimeout: 20s
+
+paths:
+  all:
+    source: publisher
