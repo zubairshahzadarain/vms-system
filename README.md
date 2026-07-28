@@ -4,6 +4,9 @@ A web-based Video Management System for a centralized security command center: m
 
 Built for the Zenith Technologies Senior Full-Stack Developer technical assignment.
 
+![VMS Dashboard](docs/screenshots/dashboard.png)
+*Dashboard: live camera health, storage quota with automatic retention, and the real-time event feed.*
+
 ---
 
 ## Contents
