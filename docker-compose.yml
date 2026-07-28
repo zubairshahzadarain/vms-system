@@ -26,6 +26,7 @@ services:
     environment:
       MEDIAMTX_HOST: simulator
       MEDIAMTX_PORT: 8554
+      EXTERNAL_RELAY_URL: ${EXTERNAL_RELAY_URL:-}
     depends_on:
       - simulator
 
@@ -43,6 +44,8 @@ services:
       SEGMENT_SECONDS: ${SEGMENT_SECONDS:-60}
       SIMULATOR_HOST: simulator
       SEED_ON_START: "true"
+      # Presence of this var makes the seed also create the external-relay cameras
+      EXTERNAL_RELAY_URL: ${EXTERNAL_RELAY_URL:-}
     volumes:
       - media-data:/app/media
     ports:

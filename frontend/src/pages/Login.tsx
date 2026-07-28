@@ -35,14 +35,19 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(ellipse_at_top,#0f2036_0%,#070b14_60%)] p-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 flex flex-col items-center gap-2">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/15 text-accent">
-            <Video size={30} />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-surface-950 p-4">
+      <div className="bg-grid pointer-events-none absolute inset-0 opacity-60 [mask-image:radial-gradient(ellipse_60%_50%_at_50%_30%,black,transparent)]" />
+
+      <div className="relative w-full max-w-sm">
+        <div className="mb-6 flex flex-col items-center gap-2.5">
+          <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-accent/30 bg-accent/10 text-accent">
+            <Video size={26} />
           </div>
-          <h1 className="text-xl font-bold text-white">Video Management System</h1>
-          <p className="text-sm text-slate-400">Central security command center</p>
+          <h1 className="text-xl font-bold tracking-tight text-white">Video Management System</h1>
+          <p className="section-eyebrow">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            Central Security Command Center
+          </p>
         </div>
 
         <form onSubmit={submit} className="card space-y-4 p-6">
@@ -90,9 +95,9 @@ export default function Login() {
                   setUsername(a.u);
                   setPassword(a.p);
                 }}
-                className="flex w-full items-center justify-between rounded-md px-2 py-1 text-left text-sm text-slate-300 transition hover:bg-surface-800"
+                className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-slate-300 transition hover:bg-surface-800/80"
               >
-                <span className="font-mono">{a.u}</span>
+                <span className="font-mono text-accent/90">{a.u}</span>
                 <span className="text-xs text-slate-500">{a.role}</span>
               </button>
             ))}

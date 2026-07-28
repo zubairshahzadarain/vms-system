@@ -111,6 +111,34 @@ async function main() {
     });
   }
 
+  // When an external relay is configured (stream-feed republishes a real
+  // HLS/RTSP source at /external1), seed cameras for it too. Skipped otherwise
+  // so default deployments never show a permanently-offline camera.
+  if (process.env.EXTERNAL_RELAY_URL) {
+    const externalCams = [
+      { name: 'CAM-05 External Feed', location: 'External Relay (live source)', motionDetection: true },
+      { name: 'CAM-06 External Feed B', location: 'External Relay (second view)', motionDetection: false },
+    ];
+    for (const cam of externalCams) {
+      const existing = await prisma.camera.findFirst({ where: { name: cam.name } });
+      if (!existing) {
+        createdCams.push(
+          await prisma.camera.create({
+            data: {
+              ...cam,
+              rtspUrl: `rtsp://${simHost}:8554/external1`,
+              groupId: parking.id,
+              resolution: '1280x720',
+              fps: 24,
+              isEnabled: true,
+              continuousRecording: false,
+            },
+          }),
+        );
+      }
+    }
+  }
+
   console.log('Seed complete:', {
     users: [admin.username, operator.username, viewer.username],
     cameras: createdCams.map((c) => c.name),

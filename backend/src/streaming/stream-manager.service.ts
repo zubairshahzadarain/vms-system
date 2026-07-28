@@ -62,6 +62,8 @@ interface CameraRuntime {
   status: CameraStatus;
   everOnline: boolean;
   lastHbWrite: number;
+  /** throttles continuous-recording recovery attempts */
+  lastRecoveryAt?: number;
 }
 
 const SEGMENT_SECONDS = parseInt(process.env.SEGMENT_SECONDS || '60');
@@ -182,6 +184,11 @@ export class StreamManagerService implements OnApplicationBootstrap, OnApplicati
   private getRuntime(cam: Camera): CameraRuntime {
     let rt = this.runtimes.get(cam.id);
     if (!rt) {
+      // Seed in-memory status from the persisted value. Hardcoding OFFLINE here
+      // would desync the two: markOffline() short-circuits when it thinks the
+      // camera is already offline, so a DB row left at ONLINE (e.g. after an
+      // rtspUrl edit tore down the old runtime) would never be corrected.
+      const known: CameraStatus = cam.status === 'ONLINE' ? 'ONLINE' : 'OFFLINE';
       rt = {
         cam,
         liveStartedAt: 0,
@@ -189,8 +196,8 @@ export class StreamManagerService implements OnApplicationBootstrap, OnApplicati
         backoffMs: 5000,
         motionStopping: false,
         lastMotionEventAt: 0,
-        status: 'OFFLINE',
-        everOnline: false,
+        status: known,
+        everOnline: known === 'ONLINE',
         lastHbWrite: 0,
       };
       this.runtimes.set(cam.id, rt);
@@ -261,12 +268,27 @@ export class StreamManagerService implements OnApplicationBootstrap, OnApplicati
       if (fresh) {
         rt.backoffMs = 5000;
         await this.markOnline(rt);
-      } else if (rt.live && Date.now() - rt.liveStartedAt > 30_000) {
-        // stuck process (rtsp hang): kill it; exit handler restarts with backoff
-        this.log.warn(`stale playlist for ${rt.cam.name}; restarting live pipeline`);
-        rt.live.kill('SIGKILL');
-      } else if (!rt.live && rt.status === 'ONLINE') {
+      } else if (rt.liveStartedAt && Date.now() - rt.liveStartedAt > 30_000) {
+        // No fresh video for 30s+. Delivered frames — not process liveness — are
+        // the source of truth: an ffmpeg that is up but failing to pull (auth
+        // rejected, source gone) must still read as OFFLINE.
+        if (rt.live) {
+          this.log.warn(`stale playlist for ${rt.cam.name}; restarting live pipeline`);
+          rt.live.kill('SIGKILL');
+        }
         await this.markOffline(rt);
+      }
+
+      // Reconcile desired vs actual recording state: a camera configured for
+      // continuous recording must always have an active recorder. Without this,
+      // a manual stop (or a failed restart) leaves it permanently idle while
+      // its config still claims 24/7 coverage — a silent gap in the footage.
+      if (rt.cam.isEnabled && rt.cam.continuousRecording && !rt.recorder && rt.status === 'ONLINE') {
+        if (Date.now() - (rt.lastRecoveryAt ?? 0) > 15_000) {
+          rt.lastRecoveryAt = Date.now();
+          this.log.warn(`no recorder for continuous camera ${rt.cam.name}; restarting`);
+          void this.startRecording(rt.cam.id, 'CONTINUOUS').catch(() => undefined);
+        }
       }
     }
   }
@@ -508,6 +530,7 @@ export class StreamManagerService implements OnApplicationBootstrap, OnApplicati
     const proc = spawnFfmpeg(motionDetectArgs(rt.cam.rtspUrl, parseFloat(MOTION_THRESHOLD) as any));
     rt.motion = proc;
     rt.motionStopping = false;
+    this.log.log(`motion pipeline started for ${rt.cam.name}`);
 
     let buffer = '';
     proc.stdout.on('data', (chunk) => {
@@ -518,10 +541,11 @@ export class StreamManagerService implements OnApplicationBootstrap, OnApplicati
         void this.handleMotion(rt);
       }
     });
-    proc.stderr.on('data', () => undefined);
-    proc.on('close', () => {
+    const stderrTail = this.captureStderrTail(proc);
+    proc.on('close', (code) => {
       if (rt.motion === proc) rt.motion = undefined;
       if (this.shuttingDown || rt.motionStopping) return;
+      this.log.warn(`motion pipeline for ${rt.cam.name} exited (code ${code}) — ${stderrTail()}`);
       rt.motionRestartTimer = setTimeout(() => this.startMotion(rt), 15_000);
     });
   }

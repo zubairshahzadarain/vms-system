@@ -16,6 +16,9 @@
   ::-webkit-scrollbar-thumb {
     @apply rounded bg-surface-600;
   }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-accent-dim/60;
+  }
   ::-webkit-scrollbar-track {
     @apply bg-transparent;
   }
@@ -23,30 +26,49 @@
 
 @layer components {
   .card {
-    @apply rounded-xl border border-surface-700/60 bg-surface-900/80 shadow-lg shadow-black/20;
+    @apply relative rounded-lg border border-surface-700/70 bg-surface-900 shadow-md shadow-black/40;
+  }
+  .card::before {
+    content: '';
+    @apply pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-lg bg-white/[0.06];
+  }
+  .card-alert {
+    @apply card border-red-500/40;
   }
   .input {
-    @apply w-full rounded-lg border border-surface-600 bg-surface-850 px-3 py-2 text-sm text-slate-200 outline-none transition placeholder:text-slate-500 focus:border-accent/70 focus:ring-1 focus:ring-accent/40;
+    @apply w-full rounded-md border border-surface-600 bg-surface-850 px-3 py-2 text-sm text-slate-200 outline-none transition placeholder:text-slate-500 focus:border-accent/60 focus:ring-1 focus:ring-accent/30;
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-100 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
     @apply btn bg-accent-dim text-white hover:bg-accent;
   }
   .btn-ghost {
-    @apply btn border border-surface-600 bg-transparent text-slate-300 hover:border-slate-400 hover:text-white;
+    @apply btn border border-surface-600 bg-transparent text-slate-300 hover:border-slate-500 hover:bg-surface-800 hover:text-white;
   }
   .btn-danger {
-    @apply btn bg-red-600/90 text-white hover:bg-red-500;
+    @apply btn bg-red-600 text-white hover:bg-red-500;
   }
   .label {
     @apply mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400;
   }
   .th {
-    @apply px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400;
+    @apply px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500;
   }
   .td {
     @apply px-3 py-2.5 text-sm;
+  }
+  .section-eyebrow {
+    @apply flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400;
+  }
+}
+
+@layer utilities {
+  .bg-grid {
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
 }

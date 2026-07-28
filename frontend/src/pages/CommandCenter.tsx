@@ -59,27 +59,20 @@ export default function CommandCenter() {
 
   return (
     <div className="-m-5 flex h-[calc(100vh)] flex-col bg-surface-950">
-      <div className="flex items-center justify-between border-b border-surface-700/60 bg-surface-900 px-5 py-2.5">
+      <div className="flex items-center justify-between border-b border-surface-700/60 bg-surface-900 px-5 py-3">
         <div className="flex items-center gap-3">
-          <Radio size={18} className="animate-pulse text-red-400" />
-          <h1 className="text-sm font-bold uppercase tracking-[0.2em] text-white">
+          <Radio size={16} className="animate-pulse text-red-400" />
+          <h1 className="text-sm font-bold uppercase tracking-[0.25em] text-white">
             Central Command Center
           </h1>
         </div>
-        <div className="flex items-center gap-5 text-xs text-slate-400">
-          <span>
-            <span className="font-bold text-emerald-300">{s?.cameras.online ?? '–'}</span> online
+        <div className="flex items-center gap-2 text-xs">
+          <StatPill label="online" value={s?.cameras.online ?? '–'} tone="ok" />
+          <StatPill label="offline" value={offline.length} tone={offline.length ? 'bad' : 'neutral'} />
+          <StatPill label="critical" value={s?.events.openCritical ?? 0} tone={s?.events.openCritical ? 'bad' : 'neutral'} />
+          <span className="ml-2 rounded-md border border-surface-700 bg-surface-850 px-2.5 py-1 font-mono text-sm font-semibold text-accent">
+            {clock.toLocaleTimeString()}
           </span>
-          <span>
-            <span className={clsx('font-bold', offline.length ? 'text-red-300' : 'text-slate-300')}>
-              {offline.length}
-            </span>{' '}
-            offline
-          </span>
-          <span>
-            <span className="font-bold text-red-300">{s?.events.openCritical ?? 0}</span> critical
-          </span>
-          <span className="font-mono text-sm text-accent">{clock.toLocaleTimeString()}</span>
         </div>
       </div>
 
@@ -216,4 +209,26 @@ function RailSection({
 
 function RailEmpty({ text }: { text: string }) {
   return <p className="rounded-md bg-surface-850 px-2 py-1.5 text-[11px] text-slate-500">{text}</p>;
+}
+
+function StatPill({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: React.ReactNode;
+  tone: 'ok' | 'bad' | 'neutral';
+}) {
+  const toneCls =
+    tone === 'ok'
+      ? 'text-emerald-300 border-emerald-500/25 bg-emerald-500/5'
+      : tone === 'bad'
+        ? 'text-red-300 border-red-500/25 bg-red-500/5'
+        : 'text-slate-300 border-surface-700 bg-surface-850/60';
+  return (
+    <span className={clsx('rounded-md border px-2.5 py-1 font-semibold', toneCls)}>
+      <span className="font-mono">{value}</span> <span className="font-normal opacity-70">{label}</span>
+    </span>
+  );
 }

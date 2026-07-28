@@ -4,11 +4,13 @@ import {
   Circle,
   Maximize2,
   RotateCcw,
+  ScanEye,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
+import { detectObjects, loadDetector, type Detection } from '../lib/detection';
 import type { Camera } from '../lib/types';
 import { StatusDot } from './ui';
 import HlsPlayer from './HlsPlayer';
@@ -36,6 +38,46 @@ export default function CameraTile({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [snapMsg, setSnapMsg] = useState<string | null>(null);
   const dragging = useRef<{ x: number; y: number } | null>(null);
+
+  // Client-side AI object detection (TensorFlow.js, runs entirely in-browser —
+  // no backend, no API key). Opt-in per tile: real-time inference on every
+  // tile at once would be wasteful, so it only runs where explicitly enabled.
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [detections, setDetections] = useState<Detection[]>([]);
+
+  useEffect(() => {
+    if (!aiEnabled || !camera) {
+      setDetections([]);
+      return;
+    }
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const runLoop = async () => {
+      setAiLoading(true);
+      const model = await loadDetector().catch(() => null);
+      setAiLoading(false);
+      if (cancelled || !model) return;
+
+      const tick = async () => {
+        if (cancelled) return;
+        const video = videoRef.current;
+        if (video) {
+          const found = await detectObjects(video, model).catch(() => []);
+          if (!cancelled) setDetections(found);
+        }
+        timer = setTimeout(tick, 800);
+      };
+      void tick();
+    };
+    void runLoop();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [aiEnabled, camera]);
 
   const clampPan = useCallback((p: { x: number; y: number }, z: number) => {
     const limit = ((z - 1) / 2) * 100;
@@ -128,6 +170,28 @@ export default function CameraTile({
                   videoRef={videoRef}
                 />
               ) : null}
+              {aiEnabled &&
+                detections.map((d, i) => {
+                  const vw = videoRef.current?.videoWidth || 1;
+                  const vh = videoRef.current?.videoHeight || 1;
+                  const [x, y, w, h] = d.bbox;
+                  return (
+                    <div
+                      key={i}
+                      className="pointer-events-none absolute border-2 border-accent"
+                      style={{
+                        left: `${(x / vw) * 100}%`,
+                        top: `${(y / vh) * 100}%`,
+                        width: `${(w / vw) * 100}%`,
+                        height: `${(h / vh) * 100}%`,
+                      }}
+                    >
+                      <span className="absolute -top-5 left-0 whitespace-nowrap rounded-sm bg-accent px-1 py-0.5 text-[10px] font-bold uppercase text-surface-950">
+                        {d.class} {Math.round(d.score * 100)}%
+                      </span>
+                    </div>
+                  );
+                })}
             </div>
             {camera.status !== 'ONLINE' && (
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/70">
@@ -145,11 +209,18 @@ export default function CameraTile({
                   {camera.name}
                 </span>
               </div>
-              {camera.isRecording && (
-                <span className="flex items-center gap-1 rounded bg-red-600/90 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                  <Circle size={7} className="animate-pulse fill-white" /> REC
-                </span>
-              )}
+              <div className="flex items-center gap-1">
+                {aiEnabled && (
+                  <span className="flex items-center gap-1 rounded bg-accent/90 px-1.5 py-0.5 text-[10px] font-bold text-surface-950">
+                    <ScanEye size={10} /> {aiLoading ? 'AI…' : `AI ${detections.length}`}
+                  </span>
+                )}
+                {camera.isRecording && (
+                  <span className="flex items-center gap-1 rounded bg-red-600/90 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    <Circle size={7} className="animate-pulse fill-white" /> REC
+                  </span>
+                )}
+              </div>
             </div>
 
             {zoom > 1 && (
@@ -183,6 +254,13 @@ export default function CameraTile({
               )}
               <TileBtn title="Snapshot" onClick={snapshot}>
                 <CameraIcon size={14} />
+              </TileBtn>
+              <TileBtn
+                title={aiEnabled ? 'Disable AI detection' : 'Enable AI object detection (runs in-browser)'}
+                onClick={() => setAiEnabled((v) => !v)}
+                active={aiEnabled}
+              >
+                <ScanEye size={14} />
               </TileBtn>
               <TileBtn title="Fullscreen" onClick={fullscreen}>
                 <Maximize2 size={14} />
@@ -219,10 +297,12 @@ function TileBtn({
   children,
   onClick,
   title,
+  active,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   title: string;
+  active?: boolean;
 }) {
   return (
     <button
@@ -232,7 +312,12 @@ function TileBtn({
         onClick();
       }}
       onMouseDown={(e) => e.stopPropagation()}
-      className="rounded bg-black/50 p-1.5 text-slate-200 transition hover:bg-accent/30 hover:text-white"
+      className={clsx(
+        'rounded p-1.5 transition',
+        active
+          ? 'bg-accent/25 text-accent'
+          : 'bg-black/50 text-slate-200 hover:bg-accent/30 hover:text-white',
+      )}
     >
       {children}
     </button>

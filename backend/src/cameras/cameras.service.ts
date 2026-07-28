@@ -89,7 +89,10 @@ export class CamerasService {
       include: { group: true },
     });
     await this.streams.onCameraUpdated(before, after);
-    return after;
+    // onCameraUpdated (e.g. stopCamera on disable) can write status directly
+    // to the DB as a side effect; re-fetch so the response never returns a
+    // stale snapshot from before that write landed.
+    return this.prisma.camera.findUniqueOrThrow({ where: { id }, include: { group: true } });
   }
 
   async remove(id: string) {

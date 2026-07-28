@@ -50,8 +50,8 @@ export default function Playback() {
   return (
     <div className="flex h-full flex-col">
       <PageHeader title="Playback" subtitle="Browse and replay recorded video" />
-      <div className="grid flex-1 gap-4 xl:grid-cols-[340px_1fr]">
-        <div className="card flex flex-col overflow-hidden">
+      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[340px_1fr]">
+        <div className="card flex min-h-0 flex-col overflow-hidden">
           <div className="space-y-2 border-b border-surface-700/60 p-3">
             <select className="input" value={cameraId} onChange={(e) => setCameraId(e.target.value)}>
               <option value="">All cameras</option>
@@ -109,11 +109,11 @@ export default function Playback() {
           </div>
         </div>
 
-        <div className="min-h-[420px]">
+        <div className="flex min-h-[420px] flex-col">
           {selected ? (
             <SessionPlayer sessionId={selected} />
           ) : (
-            <div className="card flex h-full items-center justify-center">
+            <div className="card flex flex-1 items-center justify-center">
               <EmptyState title="Select a recording session" hint="Choose from the list on the left" />
             </div>
           )}
@@ -205,14 +205,14 @@ function SessionPlayer({ sessionId }: { sessionId: string }) {
 
   if (!session) {
     return (
-      <div className="card flex h-full items-center justify-center">
+      <div className="card flex flex-1 items-center justify-center">
         <Spinner />
       </div>
     );
   }
   if (!segments.length) {
     return (
-      <div className="card flex h-full items-center justify-center">
+      <div className="card flex flex-1 items-center justify-center">
         <EmptyState title="Session has no playable segments yet" hint="Segments appear as they are finalized" />
       </div>
     );
@@ -232,7 +232,7 @@ function SessionPlayer({ sessionId }: { sessionId: string }) {
   };
 
   return (
-    <div className="card flex h-full flex-col overflow-hidden">
+    <div className="card flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="flex items-center justify-between border-b border-surface-700/60 px-4 py-2.5">
         <div>
           <p className="text-sm font-semibold text-white">
@@ -263,7 +263,7 @@ function SessionPlayer({ sessionId }: { sessionId: string }) {
         </div>
       </div>
 
-      <div className="relative flex-1 bg-black">
+      <div className="relative min-h-0 flex-1 bg-black">
         <video
           key={current.id}
           ref={videoRef}
