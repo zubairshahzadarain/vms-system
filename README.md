@@ -4,8 +4,6 @@ A web-based Video Management System for a centralized security command center: m
 
 Built for the Zenith Technologies Senior Full-Stack Developer technical assignment.
 
-**Live demo (Azure):** https://vms-frontend.blackflower-76a41e27.eastus2.azurecontainerapps.io/login · demo login `admin` / `Admin@123` · [Swagger API docs](https://vms-backend.blackflower-76a41e27.eastus2.azurecontainerapps.io/api/docs)
-
 ![VMS Dashboard](docs/screenshots/dashboard.png)
 *Dashboard: live camera health, storage quota with automatic retention, and the real-time event feed.*
 
