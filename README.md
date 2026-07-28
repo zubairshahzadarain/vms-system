@@ -2,8 +2,6 @@
 
 A web-based Video Management System for a centralized security command center: multi-camera live monitoring, continuous/manual/event recording with an intelligent keyframe timeline, role-based access control, real-time event management, and full-text search — all deployable with a single `docker compose up`.
 
-Built for the Zenith Technologies Senior Full-Stack Developer technical assignment.
-
 ![VMS Dashboard](docs/screenshots/dashboard.png)
 *Dashboard: live camera health, storage quota with automatic retention, and the real-time event feed.*
 
